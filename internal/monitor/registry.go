@@ -5,58 +5,61 @@ import (
 	"sync"
 )
 
-// Registry holds all monitored jobs and provides thread-safe access.
+// Registry holds all monitored jobs.
 type Registry struct {
 	mu   sync.RWMutex
 	jobs map[string]*Job
 }
 
-// NewRegistry creates an empty job registry.
+// NewRegistry creates an empty Registry.
 func NewRegistry() *Registry {
 	return &Registry{
 		jobs: make(map[string]*Job),
 	}
 }
 
-// Register adds a new job to the registry.
-// Returns an error if a job with the same ID already exists.
-func (r *Registry) Register(job *Job) error {
+// Register adds a job to the registry.
+func (r *Registry) Register(j *Job) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if _, exists := r.jobs[job.ID]; exists {
-		return fmt.Errorf("job %q is already registered", job.ID)
-	}
-	r.jobs[job.ID] = job
-	return nil
+	r.jobs[j.Name] = j
 }
 
-// Get retrieves a job by ID.
-func (r *Registry) Get(id string) (*Job, bool) {
+// Get retrieves a job by name.
+func (r *Registry) Get(name string) (*Job, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	j, ok := r.jobs[id]
-	return j, ok
-}
-
-// CheckIn records a successful run for the given job ID.
-func (r *Registry) CheckIn(id string) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	j, ok := r.jobs[id]
+	j, ok := r.jobs[name]
 	if !ok {
-		return fmt.Errorf("job %q not found", id)
+		return nil, fmt.Errorf("job %q not found", name)
 	}
-	j.CheckIn()
-	return nil
+	return j, nil
 }
 
 // All returns a snapshot of all registered jobs.
 func (r *Registry) All() []*Job {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	list := make([]*Job, 0, len(r.jobs))
+	out := make([]*Job, 0, len(r.jobs))
 	for _, j := range r.jobs {
-		list = append(list, j)
+		out = append(out, j)
 	}
-	return list
+	return out
+}
+
+// CheckIn records a check-in for the named job.
+func (r *Registry) CheckIn(name string) error {
+	j, err := r.Get(name)
+	if err != nil {
+		return err
+	}
+	j.CheckIn()
+	return nil
+}
+
+// Len returns the number of registered jobs.
+func (r *Registry) Len() int {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return len(r.jobs)
 }
