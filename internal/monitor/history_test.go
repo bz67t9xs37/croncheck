@@ -68,3 +68,16 @@ func TestHistory_DefaultMaxSize(t *testing.T) {
 		t.Errorf("expected default max 50, got %d", len(records))
 	}
 }
+
+func TestHistory_RecordTimestamp(t *testing.T) {
+	h := NewHistory(10)
+	h.Record("backup", StatusHealthy)
+
+	records := h.Get("backup")
+	if len(records) == 0 {
+		t.Fatal("expected at least one record")
+	}
+	if records[0].Timestamp.IsZero() {
+		t.Error("expected non-zero timestamp on recorded entry")
+	}
+}
