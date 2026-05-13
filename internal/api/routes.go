@@ -3,34 +3,46 @@ package api
 import (
 	"net/http"
 
-	"github.com/croncheck/internal/monitor"
-	"github.com/croncheck/internal/webhook"
+	"github.com/example/croncheck/internal/monitor"
 )
 
-// RouterDeps groups all dependencies needed to register API routes.
-type RouterDeps struct {
-	Registry     *monitor.Registry
-	History      *monitor.History
-	AlertLog     *monitor.AlertLog
-	Scheduler    *monitor.Scheduler
-	Silences     *monitor.SilenceStore
-	Maintenance  *monitor.MaintenanceStore
-	Retry        *monitor.RetryTracker
-	Tags         *monitor.TagStore
-	Dependencies *monitor.DependencyStore
-	Notifier     *webhook.Notifier
-}
-
-// RegisterRoutes attaches all API handlers to mux.
-func RegisterRoutes(mux *http.ServeMux, deps RouterDeps) {
-	mux.Handle("/checkin/", NewHandler(deps.Registry, deps.History))
-	mux.Handle("/status", NewHandler(deps.Registry, deps.History))
-	mux.Handle("/history", NewHistoryHandler(deps.History))
-	mux.Handle("/alerts", NewAlertLogHandler(deps.AlertLog))
-	mux.Handle("/scheduler", NewSchedulerHandler(deps.Scheduler))
-	mux.Handle("/silences", NewSilenceHandler(deps.Silences))
-	mux.Handle("/maintenance", NewMaintenanceHandler(deps.Maintenance))
-	mux.Handle("/retry", NewRetryHandler(deps.Retry))
-	mux.Handle("/tags", NewTagsHandler(deps.Tags))
-	mux.Handle("/dependencies", NewDependencyHandler(deps.Dependencies))
+// RegisterRoutes wires all API handlers onto the given mux.
+func RegisterRoutes(
+	mux *http.ServeMux,
+	reg *monitor.Registry,
+	history *monitor.History,
+	alertLog *monitor.AlertLog,
+	scheduler *monitor.Scheduler,
+	silences *monitor.SilenceStore,
+	maintenance *monitor.MaintenanceStore,
+	retryTracker *monitor.RetryTracker,
+	tags *monitor.TagStore,
+	deps *monitor.DependencyStore,
+	heartbeats *monitor.HeartbeatStore,
+	snapshots *monitor.SnapshotStore,
+	rateLimits *monitor.RateLimitStore,
+	runbooks *monitor.RunbookStore,
+	escalations *monitor.EscalationStore,
+	annotations *monitor.AnnotationStore,
+	metrics *monitor.MetricStore,
+	sla *monitor.SLAStore,
+) {
+	mux.Handle("/checkin", NewHandler(reg, history))
+	mux.Handle("/status", NewHandler(reg, history))
+	mux.Handle("/history", NewHistoryHandler(history))
+	mux.Handle("/alerts", NewAlertLogHandler(alertLog))
+	mux.Handle("/scheduler", NewSchedulerHandler(scheduler))
+	mux.Handle("/silences", NewSilenceHandler(silences))
+	mux.Handle("/maintenance", NewMaintenanceHandler(maintenance))
+	mux.Handle("/retry", NewRetryHandler(retryTracker))
+	mux.Handle("/tags", NewTagsHandler(tags))
+	mux.Handle("/dependencies", NewDependencyHandler(deps))
+	mux.Handle("/snapshots", NewSnapshotHandler(snapshots))
+	mux.Handle("/ratelimits", NewRateLimitHandler(rateLimits))
+	mux.Handle("/runbooks", NewRunbookHandler(runbooks))
+	mux.Handle("/escalations", NewEscalationHandler(escalations))
+	mux.Handle("/annotations", NewAnnotationHandler(annotations))
+	mux.Handle("/metrics", NewMetricHandler(metrics))
+	mux.Handle("/sla", NewSLAHandler(sla))
+	mux.Handle("/sla/violations", NewSLAHandler(sla))
 }
